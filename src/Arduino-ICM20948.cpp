@@ -3,9 +3,9 @@
 *************************************************************************/
 
 #include "Arduino-ICM20948.h"
-#include <Wire.h>
-#include <SPI.h>
+
 #include <Arduino.h>
+#include <Wire.h>
 
 // InvenSense drivers and utils
 #include "util/Icm20948.h"
@@ -57,48 +57,6 @@ bool steps_data_ready = false;
 /*************************************************************************
   HAL Functions for Arduino
 *************************************************************************/
-int spi_master_read_register(uint8_t reg, uint8_t* rbuffer, uint32_t rlen)
-{
-    //return spi_master_transfer_rx(NULL, reg, rbuffer, rlen);
-  
-    SPI.beginTransaction(SPISettings(com_speed, MSBFIRST, SPI_MODE0));
-    SPI.transfer(0x00);
-    SPI.endTransaction();
-
-    digitalWrite(chipSelectPin, LOW);
-    SPI.beginTransaction(SPISettings(com_speed, MSBFIRST, SPI_MODE0));
-    SPI.transfer(((reg & 0x7F) | 0x80));
-    for (uint32_t indi = 0; indi < rlen; indi++)
-    {
-        *(rbuffer + indi) = SPI.transfer(0x00);
-    }
-    SPI.endTransaction();
-    digitalWrite(chipSelectPin, HIGH);
-
-    return 0;
-}
-
-int spi_master_write_register(uint8_t reg, const uint8_t* wbuffer, uint32_t wlen)
-{
-    //return spi_master_transfer_tx(NULL, reg, wbuffer, wlen);
-
-    SPI.beginTransaction(SPISettings(com_speed, MSBFIRST, SPI_MODE0));
-    SPI.transfer(0x00);
-    SPI.endTransaction();
-
-    digitalWrite(chipSelectPin, LOW);
-    SPI.beginTransaction(SPISettings(com_speed, MSBFIRST, SPI_MODE0));
-    SPI.transfer((reg & 0x7F) | 0x00);
-    for (uint32_t indi = 0; indi < wlen; indi++)
-    {
-        SPI.transfer(*(wbuffer + indi));
-    }
-    SPI.endTransaction();
-    digitalWrite(chipSelectPin, HIGH);
-
-    return 0;
-}
-
 int i2c_master_write_register(uint8_t address, uint8_t reg, uint32_t len, const uint8_t *data)
 {
   if (address != 0x69)
@@ -225,52 +183,9 @@ uint64_t inv_icm20948_get_time_us(void)
   return micros();
 }
 
-
-void initiliaze_SPI(void)
-{
-    pinMode(chipSelectPin, OUTPUT);
-    digitalWrite(chipSelectPin, HIGH);
-    SPI.begin();
-
-    SPI.beginTransaction(SPISettings(com_speed, MSBFIRST, SPI_MODE0));
-    SPI.transfer(0x00);
-    SPI.endTransaction();
-}
-void initiliaze_I2C(void)
-{
-    Wire.begin();
-    Wire.setClock(com_speed);
-}
-
-bool is_interface_SPI = false;
-void set_comm_interface(ArduinoICM20948Settings settings)
-{
-    chipSelectPin = settings.cs_pin;
-    is_interface_SPI = settings.is_SPI;
-    if (is_interface_SPI)
-    {
-        com_speed = settings.spi_speed;
-        initiliaze_SPI();
-    }
-    else
-    {
-        com_speed = settings.i2c_speed;
-        //initiliaze_I2C();
-    }
-
-}
-inv_bool_t interface_is_SPI(void)
-{
-  return is_interface_SPI;
-}
-
 //---------------------------------------------------------------------
 int idd_io_hal_read_reg(void *context, uint8_t reg, uint8_t *rbuffer, uint32_t rlen)
 {
-    if (interface_is_SPI())
-    {
-        return spi_master_read_register(reg, rbuffer, rlen);
-    }
     return i2c_master_read_register(I2C_Address, reg, rlen, rbuffer);
 }
 
@@ -278,10 +193,6 @@ int idd_io_hal_read_reg(void *context, uint8_t reg, uint8_t *rbuffer, uint32_t r
 
 int idd_io_hal_write_reg(void *context, uint8_t reg, const uint8_t *wbuffer, uint32_t wlen)
 {
-    if (interface_is_SPI())
-    {
-        return spi_master_write_register(reg, wbuffer, wlen);
-    }
     return i2c_master_write_register(I2C_Address, reg, wlen, wbuffer);
 }
 
@@ -586,7 +497,6 @@ ArduinoICM20948::ArduinoICM20948()
 
 void ArduinoICM20948::init(ArduinoICM20948Settings settings)
 {
-  set_comm_interface(settings);
   Serial.println("Initializing ICM-20948...");
 
   // Initialize icm20948 serif structure
@@ -596,7 +506,6 @@ void ArduinoICM20948::init(ArduinoICM20948Settings settings)
   icm20948_serif.write_reg = idd_io_hal_write_reg;
   icm20948_serif.max_read  = 1024 * 16; // maximum number of bytes allowed per serial read
   icm20948_serif.max_write = 1024 * 16; // maximum number of bytes allowed per serial write
-  icm20948_serif.is_spi = interface_is_SPI();
 
   // Reset icm20948 driver states
   inv_icm20948_reset_states(&icm_device, &icm20948_serif);

@@ -6,10 +6,6 @@
 *************************************************************************/
 
 typedef struct {
-  int i2c_speed;
-  bool is_SPI;
-  int cs_pin;
-  int spi_speed;
   int mode;
   bool enable_gyroscope;
   bool enable_accelerometer;
