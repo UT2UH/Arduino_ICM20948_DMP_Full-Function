@@ -8,9 +8,9 @@
 #include <Arduino.h>
 
 // InvenSense drivers and utils
-#include "Icm20948.h"
-#include "SensorTypes.h"
-#include "Icm20948MPUFifoControl.h"
+#include "util/Icm20948.h"
+#include "util/SensorTypes.h"
+#include "util/Icm20948MPUFifoControl.h"
 
 /*************************************************************************
   Variables
@@ -188,7 +188,7 @@ int32_t cfg_acc_fsr = 4; // Default = +/- 4g. Valid ranges: 2, 4, 8, 16
 int32_t cfg_gyr_fsr = 2000; // Default = +/- 2000dps. Valid ranges: 250, 500, 1000, 2000
 
 static const uint8_t dmp3_image[] = {
-#include "icm20948_img.dmp3a.h"
+#include "util/icm20948_img.dmp3a.h"
 };
 
 /*************************************************************************
